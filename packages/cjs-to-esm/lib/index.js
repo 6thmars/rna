@@ -1,4 +1,3 @@
-import { init, parse } from 'cjs-module-lexer';
 import { inlineSourcemap, transform as esTransform, walk, getOffsetFromLocation } from '@chialab/estransform';
 
 export const REQUIRE_REGEX = /([^.\w$]|^)require\s*\((['"])(.*?)\2\)/g;
@@ -10,6 +9,41 @@ export const UMD_GLOBALS = ['globalThis', 'global', 'self', 'window'];
 export const UMD_GLOBALS_REGEXES = UMD_GLOBALS.map((varName) => new RegExp(`\\btypeof\\s+(${varName})\\s*!==?\\s*['|"]undefined['|"]`));
 export const ESM_KEYWORDS = /((?:^\s*|;\s*)(\bimport\s*(\{.*?\}\s*from|\s[\w$]+\s+from|\*\s*as\s+[^\s]+\s+from)?\s*['"])|((?:^\s*|;\s*)export(\s+(default|const|var|let|function|class)[^\w$]|\s*\{)))/m;
 export const CJS_KEYWORDS = /\b(module\.exports|exports|require)\b/;
+
+/**
+ * @type {Promise<typeof import('cjs-module-lexer')>}
+ */
+let initializeCjs;
+
+/**
+ * @param {string} code
+ */
+export async function parseCommonjs(code) {
+    initializeCjs = initializeCjs || import('cjs-module-lexer')
+        .then(({ init, parse }) =>
+            init()
+                .then(() => ({ init, parse }))
+        );
+    const { parse } = await initializeCjs;
+    return parse(code);
+}
+
+/**
+ * @type {Promise<typeof import('es-module-lexer')>}
+ */
+let initializeEsm;
+
+/**
+ * @param {string} code
+ */
+export async function parseEsm(code) {
+    initializeEsm = initializeEsm || import('es-module-lexer')
+        .then(({ init, parse }) =>
+            init.then(() => ({ init, parse }))
+        );
+    const { parse } = await initializeEsm;
+    return parse(code);
+}
 
 export const REQUIRE_HELPER = `// Require helper for interop
 function $$cjs_default$$(requiredModule) {
@@ -79,8 +113,13 @@ function $$cjs_default$$(requiredModule) {
  * Check if there is chanches that the provided code is a commonjs module.
  * @param {string} code
  */
-export function maybeCommonjsModule(code) {
-    return !ESM_KEYWORDS.test(code) && CJS_KEYWORDS.test(code);
+export async function maybeCommonjsModule(code) {
+    if (!CJS_KEYWORDS.test(code)) {
+        return false;
+    }
+
+    const [imports, exports] = await parseEsm(code);
+    return imports.length === 0 && exports.length === 0;
 }
 
 /**
@@ -93,11 +132,6 @@ export function maybeCommonjsModule(code) {
 export function createTransform({ ignore = () => false }) {
     const specs = new Map();
     const ns = new Map();
-
-    /**
-     * @type {Promise<void>}
-     */
-    let initialize;
 
     /**
      * @type {import('@chialab/estransform').TransformCallack}
@@ -190,8 +224,6 @@ export function createTransform({ ignore = () => false }) {
             magicCode.append('\nexport default (__umdExport ? __umd[__umdExport] : __umd);');
         } else {
             magicCode.prepend('var global = globalThis; var module = { exports: {} }, exports = module.exports;\n');
-            initialize = initialize || init();
-            await initialize;
             /**
              * This is very ugly, but there are a lot of React stuff out there
              * @type {{ [key: string]: string }}
@@ -200,7 +232,7 @@ export function createTransform({ ignore = () => false }) {
                 './cjs/react.development.js': './cjs/react.production.min.js',
                 './cjs/react-dom.development.js': './cjs/react-dom.production.min.js',
             } : {};
-            const { exports, reexports } = parse(code);
+            const { exports, reexports } = await parseCommonjs(code);
             const named = exports.filter((entry) => entry !== '__esModule' && entry !== 'default');
             const isEsModule = exports.includes('__esModule');
             const hasDefault = exports.includes('default');
@@ -211,9 +243,11 @@ export function createTransform({ ignore = () => false }) {
                     // such as an object exports that has a function as first member.
                     conditions.push(`typeof module.exports['${named[0]}'] !== 'function'`);
                 }
-                named.forEach((name, index) => {
-                    magicCode.append(`\nconst __export${index} = ${conditions.join(' && ')} ? module.exports['${name}'] : undefined;`);
-                });
+
+                magicCode.append(`\nvar ${named.map((name, index) => `__export${index}`).join(', ')};
+if (${conditions.join(' && ')}) {
+    ${named.map((name, index) => `__export${index} = module.exports['${name}'];`).join('\n    ')}
+}`);
                 magicCode.append(`\nexport { ${named.map((name, index) => `__export${index} as ${name}`).join(', ')} }`);
             }
             if (isEsModule) {

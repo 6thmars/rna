@@ -12,9 +12,7 @@
  * @param {ManagerScriptOptions} [options]
  */
 export function createManagerScript({ addons = [] } = {}) {
-    return `import '/storybook/global.js';
-import '@storybook/core-client/dist/cjs/globals/polyfills.js';
-import '@storybook/core-client/dist/cjs/manager/index.js';
+    return `import '@storybook/manager';
 ${addons.map((a) => `import '${a}';`).join('\n')}`;
 }
 

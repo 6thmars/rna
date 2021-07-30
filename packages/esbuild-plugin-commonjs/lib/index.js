@@ -27,7 +27,7 @@ export default function(config = {}) {
                  * @type {import('@chialab/estransform').Pipeline}
                  */
                 const entry = args.pluginData || await getEntry(build, args.path);
-                if (!maybeCommonjsModule(entry.code)) {
+                if (!(await maybeCommonjsModule(entry.code))) {
                     return;
                 }
 

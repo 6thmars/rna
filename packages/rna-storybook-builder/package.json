@@ -1,9 +1,8 @@
 {
-  "name": "@chialab/rna-storybook-server",
+  "name": "@chialab/rna-storybook-builder",
   "type": "module",
-  "private": true,
   "version": "0.10.0",
-  "description": "A Web Dev Server plugin to run the Storybook web application built using RNA.",
+  "description": "RNA based Stoerybook builder.",
   "main": "lib/index.js",
   "typings": "./types/index.d.ts",
   "author": "Chialab <dev@chialab.io> (https://www.chialab.it)",
@@ -11,7 +10,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/chialab/rna",
-    "directory": "packages/rna-storybook-server"
+    "directory": "packages/rna-storybook-builder"
   },
   "keywords": [],
   "scripts": {
@@ -30,7 +29,6 @@
   },
   "dependencies": {
     "@chialab/rna-storybook-builder": "^0.10.0",
-    "@chialab/wds-plugin-rna": "^0.10.0",
     "@storybook/csf-tools": "^6.3.6",
     "esbuild": "^0.12.17",
     "fast-glob": "^3.2.7"

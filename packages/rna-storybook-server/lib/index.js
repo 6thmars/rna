@@ -1,10 +1,16 @@
 import path from 'path';
 import { getRequestFilePath } from '@web/dev-server-core';
 import { resolveImport } from '@chialab/wds-plugin-rna';
-import { createManagerHtml, createManagerScript, createManagerStyle } from './server/createManagerHtml.js';
-import { createPreviewHtml, createPreviewScript, createPreviewStyle } from './server/createPreviewHtml.js';
-import { transformMdxToCsf } from './server/transformMdxToCsf.js';
-import { findStories } from './server/findStories.js';
+import {
+    findStories,
+    createManagerHtml,
+    createManagerScript,
+    createManagerStyle,
+    createPreviewHtml,
+    createPreviewScript,
+    createPreviewStyle,
+    transformMdxToCsf,
+} from '@chialab/rna-storybook-builder';
 
 const regexpReplaceWebsocket = /<!-- injected by web-dev-server -->(.|\s)*<\/script>/m;
 
@@ -21,31 +27,9 @@ const regexpReplaceWebsocket = /<!-- injected by web-dev-server -->(.|\s)*<\/scr
  */
 
 /**
- * @param {string} type
- */
-export function createDefaultAddons(type) {
-    return {
-        '@storybook/addon-docs/dist/cjs/register.js': [
-            '@storybook/addon-docs/dist/cjs/frameworks/common/config.js',
-            `@storybook/addon-docs/dist/cjs/frameworks/${type}/config.js`,
-        ],
-        '@storybook/addon-actions/dist/cjs/register.js': [],
-        '@storybook/addon-backgrounds/dist/cjs/register.js': [],
-        '@storybook/addon-controls/dist/cjs/register.js': [],
-        '@storybook/addon-measure/dist/cjs/preset/manager.js': [],
-        // '@storybook/addon-outline/dist/cjs/register.js': [],
-        '@storybook/addon-toolbars/dist/cjs/register.js': [],
-        '@storybook/addon-viewport/dist/cjs/register.js': [],
-        '@storybook/addon-a11y/dist/cjs/register.js': [],
-    };
-}
-
-/**
  * @param {StorybookOptions} options
  */
 export function storybookPlugin({ type = 'web-components', stories, addons, previewScripts }) {
-    const DEFAULT_ADDONS = createDefaultAddons(type);
-
     /**
      * @type {import('@web/dev-server-core').DevServerCoreConfig}
      */
@@ -76,14 +60,18 @@ export function storybookPlugin({ type = 'web-components', stories, addons, prev
                 return source;
             }
 
-            if (source.startsWith('@storybook/')) {
-                return resolveImport(source, import.meta.url, serverConfig.rootDir, { code, line, column });
+            if (source === '@storybook/manager') {
+                return resolveImport('@chialab/storybook-static/dist/manager/index.js', import.meta.url, serverConfig.rootDir, { code, line, column });
             }
 
-            if (type === 'web-components') {
-                if (source === 'lit-html') {
-                    return resolveImport(source, import.meta.url, serverConfig.rootDir, { code, line, column });
-                }
+            if (source === `@storybook/${type}`) {
+                return resolveImport(`@chialab/storybook-static/dist/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
+            }
+
+            if (source === `@storybook/${type}` ||
+                source === '@storybook/addon-docs' ||
+                (type === 'web-components' && source === 'lit-html')) {
+                return resolveImport(`@chialab/storybook-static/dist/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
             }
         },
 
@@ -106,13 +94,11 @@ export function storybookPlugin({ type = 'web-components', stories, addons, prev
                 return;
             }
 
-            if (context.URL.searchParams.get('story') !== 'true') {
-                return;
-            }
-
-            const filePath = getRequestFilePath(context.url, serverConfig.rootDir);
-            if (context.path.endsWith('.mdx')) {
-                context.body = await transformMdxToCsf(type, context.body, filePath);
+            if (context.URL.searchParams.get('story') === 'true') {
+                const filePath = getRequestFilePath(context.url, serverConfig.rootDir);
+                if (context.path.endsWith('.mdx')) {
+                    context.body = await transformMdxToCsf(type, context.body, filePath);
+                }
             }
         },
 
@@ -125,10 +111,6 @@ export function storybookPlugin({ type = 'web-components', stories, addons, prev
                 return createManagerHtml();
             }
 
-            if (context.path === '/storybook/global.js') {
-                return 'globalThis.module = {};';
-            }
-
             if (context.path === '/iframe.html') {
                 return {
                     type: 'html',
@@ -138,7 +120,7 @@ export function storybookPlugin({ type = 'web-components', stories, addons, prev
 
             if (context.path.startsWith('/storybook/manager.js')) {
                 return createManagerScript({
-                    addons: addons || Object.keys(DEFAULT_ADDONS),
+                    addons,
                 });
             }
 
@@ -150,7 +132,7 @@ export function storybookPlugin({ type = 'web-components', stories, addons, prev
                 const storyImports = await findStories(serverConfig.rootDir, stories);
                 return createPreviewScript({
                     type,
-                    previewScripts: previewScripts || Object.values(DEFAULT_ADDONS).flat(),
+                    previewScripts,
                     storyImports: storyImports.map(i => `${i}?story=true`),
                 });
             }

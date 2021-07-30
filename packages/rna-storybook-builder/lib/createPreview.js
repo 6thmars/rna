@@ -14,33 +14,12 @@
 /**
  * @param {PreviewScriptOptions} options
  */
-export async function createPreviewScript({
-    type,
-    storyImports = [],
-    previewScripts = [],
-}) {
-    return `import '/storybook/global.js';
-import { configure, addDecorator, addParameters } from '@storybook/${type}';
+export async function createPreviewScript({ type, storyImports = [], previewScripts = [] }) {
+    return `import { configure, addDecorator, addParameters, registerPreviewEntry } from '@storybook/${type}';
 ${previewScripts.map((previewScript, index) => `import * as preview${index} from '${previewScript}';`).join('\n')}
 ${storyImports.map((s, i) => `import * as stories${i} from '${s}';`).join('\n')}
 
-function loadPlugin(m) {
-    if (m.decorators) {
-        m.decorators.forEach(function(decorator) {
-            addDecorator(decorator, false);
-        });
-    }
-
-    if (m.parameters || m.globals || m.globalTypes) {
-        addParameters({
-            ...(m.parameters || {}),
-            globals: m.globals,
-            globalTypes: m.globalTypes,
-        }, false);
-    }
-}
-
-${previewScripts.map((previewScript, index) => `loadPlugin(preview${index});`).join('\n')}
+${previewScripts.map((previewScript, index) => `registerPreviewEntry(preview${index});`).join('\n')}
 
 setTimeout(() => {
     configure(() => [${storyImports.map((s, i) => `stories${i}`)}], {}, false);
