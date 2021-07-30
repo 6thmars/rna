@@ -64,7 +64,7 @@ export async function build(config) {
 
     const outputDir = hasOutputFile ? path.dirname(output) : output;
     if (clean) {
-        await rm(outputDir, { recursive: true, force: true });
+        await rm(path.resolve(root, outputDir), { recursive: true, force: true });
     }
 
     const extraTransformPlugins = [];
@@ -144,6 +144,7 @@ export async function build(config) {
             ]),
         ],
         logLevel,
+        absWorkingDir: root,
     });
 
     if (manifestPath && result) {

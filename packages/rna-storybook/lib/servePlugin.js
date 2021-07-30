@@ -1,16 +1,10 @@
 import path from 'path';
 import { getRequestFilePath } from '@web/dev-server-core';
 import { resolveImport } from '@chialab/wds-plugin-rna';
-import {
-    findStories,
-    createManagerHtml,
-    createManagerScript,
-    createManagerStyle,
-    createPreviewHtml,
-    createPreviewScript,
-    createPreviewStyle,
-    transformMdxToCsf,
-} from '@chialab/rna-storybook-builder';
+import { findStories } from './findStories.js';
+import { createManagerHtml, createManagerScript, createManagerStyle } from './createManager.js';
+import { createPreviewHtml, createPreviewScript, createPreviewStyle } from './createPreview.js';
+import { transformMdxToCsf } from './transformMdxToCsf.js';
 
 const regexpReplaceWebsocket = /<!-- injected by web-dev-server -->(.|\s)*<\/script>/m;
 
@@ -29,7 +23,7 @@ const regexpReplaceWebsocket = /<!-- injected by web-dev-server -->(.|\s)*<\/scr
 /**
  * @param {StorybookOptions} options
  */
-export function storybookPlugin({ type = 'web-components', stories, addons, previewScripts }) {
+export function servePlugin({ type = 'web-components', stories, addons, previewScripts }) {
     /**
      * @type {import('@web/dev-server-core').DevServerCoreConfig}
      */
@@ -61,17 +55,17 @@ export function storybookPlugin({ type = 'web-components', stories, addons, prev
             }
 
             if (source === '@storybook/manager') {
-                return resolveImport('@chialab/storybook-static/dist/manager/index.js', import.meta.url, serverConfig.rootDir, { code, line, column });
+                return resolveImport('../storybook/manager/index.js', import.meta.url, serverConfig.rootDir, { code, line, column });
             }
 
             if (source === `@storybook/${type}`) {
-                return resolveImport(`@chialab/storybook-static/dist/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
+                return resolveImport(`../storybook/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
             }
 
             if (source === `@storybook/${type}` ||
                 source === '@storybook/addon-docs' ||
                 (type === 'web-components' && source === 'lit-html')) {
-                return resolveImport(`@chialab/storybook-static/dist/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
+                return resolveImport(`../storybook/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
             }
         },
 

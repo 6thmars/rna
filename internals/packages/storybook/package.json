@@ -1,0 +1,15 @@
+{
+  "name": "storybook",
+  "private": true,
+  "version": "6.3.6",
+  "type": "module",
+  "devDependencies": {
+    "@mdx-js/react": "^1.6.22",
+    "@storybook/addon-docs": "^6.3.6",
+    "@storybook/core-client": "^6.3.6",
+    "@storybook/web-components": "^6.3.6",
+    "lit-html": "^1.4.1",
+    "react": "^16.0.0",
+    "react-dom": "^16.0.0"
+  }
+}
