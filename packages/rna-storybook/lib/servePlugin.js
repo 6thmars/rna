@@ -13,17 +13,20 @@ const regexpReplaceWebsocket = /<!-- injected by web-dev-server -->(.|\s)*<\/scr
  */
 
 /**
- * @typedef {Object} StorybookOptions
+ * @typedef {Object} StorybookServeOptions
  * @property {string} type
  * @property {string[]} stories
  * @property {string[]} [addons]
  * @property {string[]} [previewScripts]
+ * @property {string} [managerHead]
+ * @property {string} [previewHead]
+ * @property {string} [previewBody]
  */
 
 /**
- * @param {StorybookOptions} options
+ * @param {StorybookServeOptions} options
  */
-export function servePlugin({ type = 'web-components', stories, addons, previewScripts }) {
+export function servePlugin({ type, stories: storiesPattern, addons, previewScripts, managerHead, previewHead, previewBody }) {
     /**
      * @type {import('@web/dev-server-core').DevServerCoreConfig}
      */
@@ -102,13 +105,32 @@ export function servePlugin({ type = 'web-components', stories, addons, previewS
             }
 
             if (context.path === '/') {
-                return createManagerHtml();
+                return createManagerHtml({
+                    managerHead,
+                    css: {
+                        path: '/storybook/manager.css',
+                    },
+                    js: {
+                        path: '/storybook/manager.js',
+                        type: 'module',
+                    },
+                });
             }
 
             if (context.path === '/iframe.html') {
                 return {
                     type: 'html',
-                    body: await createPreviewHtml(),
+                    body: await createPreviewHtml({
+                        previewHead,
+                        previewBody,
+                        css: {
+                            path: '/storybook/preview.css',
+                        },
+                        js: {
+                            path: '/storybook/preview.js',
+                            type: 'module',
+                        },
+                    }),
                 };
             }
 
@@ -123,11 +145,16 @@ export function servePlugin({ type = 'web-components', stories, addons, previewS
             }
 
             if (context.path.startsWith('/storybook/preview.js')) {
-                const storyImports = await findStories(serverConfig.rootDir, stories);
+                const stories = await findStories(serverConfig.rootDir, storiesPattern);
                 return createPreviewScript({
                     type,
+                    stories: stories
+                        .map((storyFilePath) => `./${path.relative(
+                            path.join(serverConfig.rootDir, 'storybook'),
+                            storyFilePath
+                        ).split(path.sep).join('/')}`)
+                        .map(i => `${i}?story=true`),
                     previewScripts,
-                    storyImports: storyImports.map(i => `${i}?story=true`),
                 });
             }
 

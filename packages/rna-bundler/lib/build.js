@@ -171,13 +171,17 @@ export async function build(config) {
                 }
 
                 const newOutputKey = path.join(path.dirname(outputKey), path.basename(inputKey));
+                if (newOutputKey === outputKey) {
+                    continue;
+                }
+
                 await rename(
                     outputKey,
                     newOutputKey
                 );
 
-                result.metafile.outputs[newOutputKey] = output;
                 delete result.metafile.outputs[outputKey];
+                result.metafile.outputs[newOutputKey] = output;
 
                 break;
             }

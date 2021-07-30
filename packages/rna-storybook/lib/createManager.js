@@ -1,6 +1,8 @@
 /**
  * @typedef {Object} ManagerOptions
  * @property {string} [managerHead]
+ * @property {{ path: string }} [css]
+ * @property {{ path: string, type: 'module'|'text/javascript' }} [js]
  */
 
 /**
@@ -35,20 +37,24 @@ body {
 /**
  * @param {ManagerOptions} [options]
  */
-export function createManagerHtml({ managerHead = '' } = {}) {
+export function createManagerHtml({
+    managerHead = '',
+    css = { path: 'manager.css' },
+    js = { path: 'manager.js', type: 'text/javascript' },
+} = {}) {
     return `<!DOCTYPE html>
 <html>
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Storybook</title>
-        <link href="/storybook/manager.css" rel="stylesheet">
+        <link href="${css.path}" rel="stylesheet">
         ${managerHead || ''}
     </head>
     <body>
         <div id="root"></div>
         <div id="docs-root"></div>
-        <script type="module" src="/storybook/manager.js"></script>
+        <script type="${js.type}" src="${js.path}"></script>
     </body>
 </html>`;
 }

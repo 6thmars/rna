@@ -88,9 +88,7 @@ export function command(program) {
                     jsxModule,
                     jsxExport,
                     plugins: await loadPlugins({
-                        html: {
-                            addBundleMetafile: (/** @type {import('esbuild').Metafile} */ meta) => bundleMetafiles.push(meta),
-                        },
+                        html: {},
                         postcss: {
                             relative: false,
                         },
@@ -136,13 +134,17 @@ export function command(program) {
                     await writeMetafile(finalMetafile, path.resolve(process.cwd(), metafile));
                 }
 
-                const sizes = await bundleSize(finalMetafile, showCompressed);
-                logger.log('Generated bundle files:\n');
-                logger.files(sizes, showCompressed ? ['size', 'gzip', 'brotli'] : ['size'], {
-                    size: readableSize,
-                    gzip: readableSize,
-                    brotli: readableSize,
-                });
+                if (Object.keys(finalMetafile.outputs).length) {
+                    const sizes = await bundleSize(finalMetafile, showCompressed);
+                    logger.log('Generated bundle files:\n');
+                    logger.files(sizes, showCompressed ? ['size', 'gzip', 'brotli'] : ['size'], {
+                        size: readableSize,
+                        gzip: readableSize,
+                        brotli: readableSize,
+                    });
+                } else {
+                    logger.log('Empty bundle.');
+                }
             }
         );
 }

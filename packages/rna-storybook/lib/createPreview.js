@@ -2,27 +2,29 @@
  * @typedef {Object} PreviewOptions
  * @property {string} [previewHead]
  * @property {string} [previewBody]
+ * @property {{ path: string }} [css]
+ * @property {{ path: string, type: 'module'|'text/javascript' }} [js]
  */
 
 /**
  * @typedef {Object} PreviewScriptOptions
  * @property {string} type
- * @property {string[]} storyImports
+ * @property {string[]} stories
  * @property {string[]} [previewScripts]
  */
 
 /**
  * @param {PreviewScriptOptions} options
  */
-export async function createPreviewScript({ type, storyImports = [], previewScripts = [] }) {
+export async function createPreviewScript({ type, stories = [], previewScripts = [] }) {
     return `import { configure, addDecorator, addParameters, registerPreviewEntry } from '@storybook/${type}';
 ${previewScripts.map((previewScript, index) => `import * as preview${index} from '${previewScript}';`).join('\n')}
-${storyImports.map((s, i) => `import * as stories${i} from '${s}';`).join('\n')}
+${stories.map((s, i) => `import * as stories${i} from '${s}';`).join('\n')}
 
 ${previewScripts.map((previewScript, index) => `registerPreviewEntry(preview${index});`).join('\n')}
 
 setTimeout(() => {
-    configure(() => [${storyImports.map((s, i) => `stories${i}`)}], {}, false);
+    configure(() => [${stories.map((s, i) => `stories${i}`)}], {}, false);
 });
 
 try {
@@ -104,6 +106,8 @@ export function createPreviewStyle() {
 export async function createPreviewHtml({
     previewHead = '',
     previewBody = '',
+    css = { path: 'preview.css' },
+    js = { path: 'preview.js', type: 'text/javascript' },
 } = {}) {
     return `<!DOCTYPE html>
 <html>
@@ -112,7 +116,7 @@ export async function createPreviewHtml({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Storybook</title>
         <base target="_parent" />
-        <link rel="stylesheet" href="/storybook/preview.css">
+        <link rel="stylesheet" href="${css.path}">
         ${previewHead || ''}
     </head>
     <body>
@@ -123,7 +127,7 @@ export async function createPreviewHtml({
             <div id="error-message" class="sb-heading"></div>
             <pre class="sb-errordisplay_code"><code id="error-stack"></code></pre>
         </div>
-        <script type="module" src="/storybook/preview.js"></script>
+        <script type="${js.type}" src="${js.path}"></script>
     </body>
 </html>`;
 }

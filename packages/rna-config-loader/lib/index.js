@@ -117,10 +117,6 @@ export function getEntryConfig(entrypoint, config) {
         throw new Error('Missing required `input` option');
     }
 
-    if (Array.isArray(entrypoint.input) && !entrypoint.input.length) {
-        throw new Error('Invalid empty `input` option');
-    }
-
     return {
         ...entrypoint,
         root,
