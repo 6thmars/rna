@@ -1,9 +1,9 @@
 import path from 'path';
 import { getEntryConfig } from '@chialab/rna-config-loader';
 import { getRequestFilePath } from '@web/dev-server-core';
-import { transform, transformLoaders, loadPlugins, loadTransformPlugins, writeDevEntrypointsJson, JS_EXTENSIONS, JSON_EXTENSIONS, CSS_EXTENSIONS } from '@chialab/rna-bundler';
-import { isCore } from '@chialab/node-resolve';
-import { resolve, resolveImport, resolveRelativeImport } from './resolveImport.js';
+import { browserResolve, isCore, JS_EXTENSIONS, JSON_EXTENSIONS, CSS_EXTENSIONS } from '@chialab/node-resolve';
+import { transform, transformLoaders, loadPlugins, loadTransformPlugins, writeDevEntrypointsJson } from '@chialab/rna-bundler';
+import { resolveImport, resolveRelativeImport } from './resolveImport.js';
 
 /**
  * @typedef {import('@web/dev-server-core').Plugin} Plugin
@@ -31,7 +31,7 @@ function isOutsideRootDir(path) {
     return path.startsWith('/__wds-outside-root__/');
 }
 
-export { resolve, resolveImport, resolveRelativeImport };
+export { resolveImport, resolveRelativeImport };
 
 /**
  * @implements {Plugin}
@@ -58,12 +58,23 @@ export class RnaPlugin {
      */
     resolveMimeType(context) {
         const fileExtension = path.posix.extname(context.path);
-        if (JS_EXTENSIONS.includes(fileExtension) ||
-            JSON_EXTENSIONS.includes(fileExtension)) {
+        if (JS_EXTENSIONS.includes(fileExtension)) {
+            return 'js';
+        }
+        if (JSON_EXTENSIONS.includes(fileExtension)) {
             return 'js';
         }
         if (CSS_EXTENSIONS.includes(fileExtension)) {
             return 'css';
+        }
+    }
+
+    /**
+     * @param {import('@web/dev-server-core').Context} context
+     */
+    async serve(context) {
+        if (context.path.includes('__rna-empty__')) {
+            return '';
         }
     }
 
@@ -80,10 +91,29 @@ export class RnaPlugin {
             return;
         }
 
+        if (typeof context.body === 'string' && context.URL.searchParams.get('module') === 'style') {
+            return {
+                body: `var link = document.createElement('link');
+link.rel = 'stylesheet';
+link.href = '${context.path}';
+document.head.appendChild(link);
+`,
+                headers: {
+                    'Content-Type': 'text/javascript',
+                },
+            };
+        }
+
         const fileExtension = path.posix.extname(context.path);
         const loader = transformLoaders[fileExtension];
         if (!loader) {
             return;
+        }
+
+        if (loader === 'json') {
+            if (context.URL.searchParams.get('module') !== 'json') {
+                return;
+            }
         }
 
         const rootDir = this.config.rootDir;
@@ -97,6 +127,7 @@ export class RnaPlugin {
             root: path.dirname(filePath),
             sourcemap: 'inline',
             target: 'es2020',
+            platform: 'browser',
             plugins: [
                 ...(await loadPlugins({
                     postcss: {
@@ -121,7 +152,7 @@ export class RnaPlugin {
                     commonjs: {
                         ignore: async (specifier) => {
                             try {
-                                await resolve(specifier, filePath);
+                                await browserResolve(specifier, filePath);
                             } catch (err) {
                                 return isCore(specifier);
                             }
@@ -143,19 +174,22 @@ export class RnaPlugin {
     /**
      * @param {ResolveImportArgs} args
      */
-    async resolveImport({
-        source,
-        context,
-        code,
-        line,
-        column,
-    }) {
+    async resolveImport({ source, context, code, line, column }) {
         if (!this.config) {
             return;
         }
 
         if (!context.response.is('js')) {
             return;
+        }
+
+        const alias = this.transformConfig.alias || {};
+        if (source in alias) {
+            const aliased = alias[source];
+            if (!aliased) {
+                return 'export default {}\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIiJdLCJtYXBwaW5ncyI6IkEifQ==';
+            }
+            source = aliased;
         }
 
         if (!path.isAbsolute(source) && parseUrl(source) != null) {
@@ -171,6 +205,15 @@ export class RnaPlugin {
         const rootDir = this.config.rootDir;
         const filePath = getRequestFilePath(context.url, rootDir);
         return await resolveImport(source, filePath, rootDir, { code, line, column });
+    }
+
+    /**
+     * @param {ResolveImportArgs} options
+     */
+    async transformImport({ source }) {
+        if (source.endsWith('.json')) {
+            return `${source}?module=json`;
+        }
     }
 }
 

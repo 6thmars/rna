@@ -10,7 +10,7 @@ const compilers = [createCompiler({})];
  * @param {string} filePath
  */
 export async function transformMdxToCsf(type, body, filePath) {
-    const { code } = await esbuild.transform(`import { React, mdx } from '@storybook/${type}';
+    const { code } = await esbuild.transform(`import React, { mdx } from '@storybook/${type}';
 
 ${await mdx(body, { compilers, filepath: filePath })}
 `, { loader: 'jsx', sourcemap: false, tsconfigRaw: '{}' });

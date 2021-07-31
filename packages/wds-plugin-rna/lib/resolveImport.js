@@ -1,13 +1,6 @@
 import path from 'path';
 import { PluginSyntaxError, PluginError } from '@web/dev-server-core';
-import { createResolver } from '@chialab/node-resolve';
-import { JS_EXTENSIONS } from '@chialab/rna-bundler';
-
-export const resolve = createResolver({
-    extensions: JS_EXTENSIONS,
-    conditionNames: ['default', 'module', 'import', 'browser'],
-    mainFields: ['module', 'esnext', 'jsnext', 'jsnext:main', 'browser', 'main'],
-});
+import { browserResolve } from '@chialab/node-resolve';
 
 /**
  * @param {string} filePath
@@ -52,7 +45,10 @@ export function resolveRelativeImport(fullSpec, importer, serveDir, { code, line
  * @param {{ code?: string, line?: number, column?: number }} [info]
  */
 export async function resolveImport(spec, importer, serveDir, { code, line, column } = {}) {
-    const fullSpec = await resolve(spec, path.dirname(importer));
+    const fullSpec = await browserResolve(spec, path.dirname(importer));
+    if (!fullSpec) {
+        return '/__rna-empty__.js';
+    }
     if (fullSpec.startsWith(serveDir)) {
         return `./${path.relative(path.dirname(importer), fullSpec)}`;
     }

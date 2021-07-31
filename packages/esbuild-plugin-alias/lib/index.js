@@ -1,3 +1,5 @@
+import { resolve } from '@chialab/node-resolve';
+
 /**
  * A plugin for esbuild that resolves aliases or empty modules.
  * @param {{ [key: string]: string | false }} modules
@@ -15,8 +17,8 @@ export default function(modules = {}) {
     const plugin = {
         name: 'alias',
         setup(build) {
-            build.onResolve({ filter: aliasFilter }, (args) => ({
-                path: /** @type {string} */ (modules[args.path]),
+            build.onResolve({ filter: aliasFilter }, async (args) => ({
+                path: await resolve(/** @type {string} */ (modules[args.path]), args.importer),
             }));
 
             build.onResolve({ filter: emptyFilter }, (args) => ({

@@ -3,6 +3,9 @@
   "private": true,
   "version": "6.3.6",
   "type": "module",
+  "browser": {
+    "@storybook/core/client": "@storybook/core"
+  },
   "devDependencies": {
     "@mdx-js/react": "^1.6.22",
     "@storybook/addon-docs": "^6.3.6",

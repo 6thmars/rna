@@ -107,7 +107,8 @@ function $$cjs_default$$(requiredModule) {
     }
 
     return specifiers;
-}`;
+}
+`;
 
 /**
  * Check if there is chanches that the provided code is a commonjs module.
@@ -223,7 +224,11 @@ export function createTransform({ ignore = () => false }) {
             magicCode.append('\nif (__umdExport && typeof globalThis !== \'undefined\') globalThis[__umdExport] = __umd[__umdExport];');
             magicCode.append('\nexport default (__umdExport ? __umd[__umdExport] : __umd);');
         } else {
-            magicCode.prepend('var global = globalThis; var module = { exports: {} }, exports = module.exports;\n');
+            magicCode.prepend(`var global = globalThis;
+var module = { exports: {} };
+var exports = module.exports;
+`);
+
             /**
              * This is very ugly, but there are a lot of React stuff out there
              * @type {{ [key: string]: string }}
@@ -231,6 +236,7 @@ export function createTransform({ ignore = () => false }) {
             const replacements = process.env.NODE_ENV === 'production' ? {
                 './cjs/react.development.js': './cjs/react.production.min.js',
                 './cjs/react-dom.development.js': './cjs/react-dom.production.min.js',
+                './cjs/react-is.development.js': './cjs/react-is.production.min.js',
             } : {};
             const { exports, reexports } = await parseCommonjs(code);
             const named = exports.filter((entry) => entry !== '__esModule' && entry !== 'default');
