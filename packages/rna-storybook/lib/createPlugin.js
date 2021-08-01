@@ -29,5 +29,5 @@ export function createPlugin(config, mode) {
         return servePlugin(config);
     }
 
-    throw new Error('Invalid mode. Supported values are "build" and "serve".')
+    throw new Error('Invalid mode. Supported values are "build" and "serve".');
 }

@@ -8,8 +8,6 @@ import { resolve } from '@chialab/node-resolve';
 export default function(modules = {}) {
     const aliases = Object.keys(modules).filter((alias) => modules[alias]);
     const empty = Object.keys(modules).filter((alias) => !modules[alias]);
-    const aliasFilter = new RegExp(`(^|\\/)${aliases.map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}(\\/|$)`);
-    const emptyFilter = new RegExp(`(^|\\/)${empty.map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}(\\/|$)`);
 
     /**
      * @type {import('esbuild').Plugin}
@@ -17,18 +15,25 @@ export default function(modules = {}) {
     const plugin = {
         name: 'alias',
         setup(build) {
-            build.onResolve({ filter: aliasFilter }, async (args) => ({
-                path: await resolve(/** @type {string} */ (modules[args.path]), args.importer),
-            }));
+            if (aliases.length) {
+                const aliasFilter = new RegExp(`(^|\\/)${aliases.map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}(\\/|$)`);
+                build.onResolve({ filter: aliasFilter }, async (args) => ({
+                    path: await resolve(/** @type {string} */(modules[args.path]), args.importer),
+                }));
+            }
 
-            build.onResolve({ filter: emptyFilter }, (args) => ({
-                path: args.path,
-                namespace: 'empty',
-            }));
+            if (empty.length) {
+                const emptyFilter = new RegExp(`(^|\\/)${empty.map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}(\\/|$)`);
 
-            build.onLoad({ filter: emptyFilter, namespace: 'empty' }, () => ({
-                contents: 'export default {}\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIiJdLCJtYXBwaW5ncyI6IkEifQ==',
-            }));
+                build.onResolve({ filter: emptyFilter }, (args) => ({
+                    path: args.path,
+                    namespace: 'empty',
+                }));
+
+                build.onLoad({ filter: emptyFilter, namespace: 'empty' }, () => ({
+                    contents: 'export default {}\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIiJdLCJtYXBwaW5ncyI6IkEifQ==',
+                }));
+            }
         },
     };
 
