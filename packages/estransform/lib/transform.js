@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
 import esbuild from 'esbuild';
 import { parse } from './parser.js';
-import { parseSourcemap, loadSourcemap, mergeSourcemaps, inlineSourcemap } from './sourcemaps';
+import { parseSourcemap, loadSourcemap, mergeSourcemaps, inlineSourcemap } from './sourcemaps.js';
 
 /**
  * @typedef {Object} TransformOptions

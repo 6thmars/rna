@@ -6,8 +6,9 @@ import { resolve } from '@chialab/node-resolve';
  * @return An esbuild plugin.
  */
 export default function(modules = {}) {
-    const aliases = Object.keys(modules).filter((alias) => modules[alias]);
-    const empty = Object.keys(modules).filter((alias) => !modules[alias]);
+    const keys = Object.keys(modules);
+    const aliases = keys.filter((alias) => modules[alias]);
+    const empty = keys.filter((alias) => !modules[alias]);
 
     /**
      * @type {import('esbuild').Plugin}

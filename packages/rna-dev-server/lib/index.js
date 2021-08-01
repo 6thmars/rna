@@ -9,6 +9,7 @@ import { createLogger, colors } from '@chialab/rna-logger';
  * @property {import('@chialab/rna-config-loader').Entrypoint[]} [entrypoints]
  * @property {string} [entrypointsPath]
  * @property {{ [key: string]: string|false }} [alias]
+ * @property {import('esbuild').Plugin[]} [transformPlugins]
  */
 
 /**
@@ -43,6 +44,7 @@ export async function buildPlugins(config) {
     return [
         rnaPlugin({
             alias: config.alias,
+            transformPlugins: config.transformPlugins,
         }),
         entrypointsPlugin(config.entrypoints, config.entrypointsPath),
     ];
@@ -169,7 +171,9 @@ export function command(program) {
                     alias: config.alias,
                     logger,
                     plugins,
+                    transformPlugins: config.transformPlugins,
                 };
+
                 try {
                     const { legacyPlugin } = await import('@chialab/wds-plugin-legacy');
                     plugins.push(legacyPlugin({

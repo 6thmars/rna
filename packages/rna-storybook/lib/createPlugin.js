@@ -31,3 +31,13 @@ export function createPlugin(config, mode) {
 
     throw new Error('Invalid mode. Supported values are "build" and "serve".');
 }
+
+/**
+ * @param {StorybookConfig} config
+ */
+export function createPlugins(config) {
+    return [
+        createPlugin(config, 'build'),
+        createPlugin(config, 'serve'),
+    ];
+}

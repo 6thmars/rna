@@ -4,14 +4,15 @@
   "version": "6.3.6",
   "type": "module",
   "browser": {
+    "path": false,
     "core-js": false,
     "@storybook/core/client": "@storybook/core"
   },
   "devDependencies": {
     "@mdx-js/react": "^1.6.22",
-    "@storybook/addon-docs": "^6.3.6",
-    "@storybook/core-client": "^6.3.6",
-    "@storybook/web-components": "^6.3.6",
+    "@storybook/addon-docs": "next",
+    "@storybook/core-client": "next",
+    "@storybook/web-components": "next",
     "lit-html": "^1.4.1",
     "react": "^16.0.0",
     "react-dom": "^16.0.0"
