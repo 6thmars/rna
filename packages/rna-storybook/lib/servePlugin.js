@@ -1,8 +1,8 @@
 import path from 'path';
 import { getRequestFilePath } from '@web/dev-server-core';
-import { CSS_EXTENSIONS, JSON_EXTENSIONS } from '@chialab/node-resolve';
+import { CSS_EXTENSIONS, JSON_EXTENSIONS, resolveToImportMetaUrl } from '@chialab/node-resolve';
 import { resolveImport } from '@chialab/wds-plugin-rna';
-import { loadAddons } from './loadAddon.js';
+import { loadAddons } from './loadAddons.js';
 import { findStories } from './findStories.js';
 import { createManagerHtml, createManagerScript, createManagerStyle } from './createManager.js';
 import { createPreviewHtml, createPreviewScript, createPreviewStyle } from './createPreview.js';
@@ -17,7 +17,7 @@ const regexpReplaceWebsocket = /<!-- injected by web-dev-server -->(.|\s)*<\/scr
 /**
  * @param {import('./createPlugin').StorybookConfig} options
  */
-export function servePlugin({ type, stories: storiesPattern, addons = [], managerEntries = [], previewEntries = [], managerHead, previewHead, previewBody }) {
+export function servePlugin({ type, stories: storiesPattern, essentials = false, addons = [], managerEntries = [], previewEntries = [], managerHead, previewHead, previewBody }) {
     /**
      * @type {import('@web/dev-server-core').DevServerCoreConfig}
      */
@@ -90,7 +90,7 @@ export function servePlugin({ type, stories: storiesPattern, addons = [], manage
             }
 
             if (source === `@storybook/${type}`) {
-                return await resolveImport(`../storybook/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
+                return await resolveImport(`../storybook/frameworks/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
             }
 
             const bundledModules = [
@@ -117,7 +117,7 @@ export function servePlugin({ type, stories: storiesPattern, addons = [], manage
                     return resolveImport('../storybook/manager/index.js', import.meta.url, serverConfig.rootDir, { code, line, column });
                 }
                 if (context.URL.searchParams.has('preview')) {
-                    return resolveImport(`../storybook/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
+                    return resolveImport(`../storybook/frameworks/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
                 }
             }
         },
@@ -179,7 +179,12 @@ export function servePlugin({ type, stories: storiesPattern, addons = [], manage
             if (context.path.startsWith('/manager.js')) {
                 const [manager] = await addonsLoader;
                 return createManagerScript({
-                    addons,
+                    addons: [
+                        ...(essentials ? [
+                            resolveToImportMetaUrl(import.meta.url, '../storybook/addons/essentials/register.js'),
+                        ] : []),
+                        ...addons,
+                    ],
                     managerEntries: [
                         ...manager,
                         ...managerEntries,
@@ -203,6 +208,9 @@ export function servePlugin({ type, stories: storiesPattern, addons = [], manage
                         ).split(path.sep).join('/')}`)
                         .map(i => `${i}?story=true`),
                     previewEntries: [
+                        ...(essentials ? [
+                            resolveToImportMetaUrl(import.meta.url, '../storybook/addons/essentials/config.js'),
+                        ] : []),
                         ...preview,
                         ...previewEntries,
                     ],

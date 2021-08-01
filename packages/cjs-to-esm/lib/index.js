@@ -124,7 +124,7 @@ export async function maybeCommonjsModule(code) {
 }
 
 /**
- * @typedef {{ source?: string, sourcemap?: boolean|'inline', sourcesContent?: boolean, ignore?(specifier: string): boolean|Promise<boolean> }} Options
+ * @typedef {{ source?: string, sourcemap?: boolean|'inline', sourcesContent?: boolean, ignore?(specifier: string, options: Options): boolean|Promise<boolean> }} Options
  */
 
 /**
@@ -137,7 +137,7 @@ export function createTransform({ ignore = () => false }) {
     /**
      * @type {import('@chialab/estransform').TransformCallack}
      */
-    const transform = async (data) => {
+    const transform = async (data, options) => {
         const { magicCode, code } = data;
         const isUmd = UMD_REGEXES.every((regex) => regex.test(code));
         let insertHelper = false;
@@ -172,7 +172,7 @@ export function createTransform({ ignore = () => false }) {
                                     id += count;
                                 }
 
-                                if (await ignore(specifier)) {
+                                if (await ignore(specifier, options)) {
                                     return;
                                 }
 
@@ -202,20 +202,8 @@ export function createTransform({ ignore = () => false }) {
                 endDefinition = code.length;
             }
 
-            let varName = '';
-            UMD_GLOBALS.forEach((name, index) => {
-                const regex = UMD_GLOBALS_REGEXES[index];
-                const match = code.match(regex);
-                if (match && match.index != null && match.index < endDefinition) {
-                    if (varName) {
-                        magicCode.overwrite(match.index, match.index + match[0].length, 'false');
-                    } else {
-                        varName = name;
-                    }
-                }
-            });
-            magicCode.prepend(`var __umd = {}; (function(${varName || '_'}) {\n`);
-            magicCode.append('\n }).call(__umd, __umd);');
+            magicCode.prepend('var __umd = {}; (function(window, global, globalThis, self, module, exports) {\n');
+            magicCode.append('\n }).call(__umd, __umd, __umd, __umd, undefined, undefined);');
             magicCode.append('\nvar __umdKeys = Object.keys(__umd);');
             magicCode.append('\nvar __umdExport = __umdKeys.length === 1 ? __umdKeys[0] : false;');
             magicCode.append('\nif (__umdExport && typeof window !== \'undefined\') window[__umdExport] = __umd[__umdExport];');

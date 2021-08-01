@@ -1,4 +1,4 @@
-export * from './common.js';
+export * from '../../common.js';
 export { useMemo, useEffect } from '@storybook/addons';
 export * from '@storybook/client-api';
 export { useAddonState } from '@storybook/client-api';

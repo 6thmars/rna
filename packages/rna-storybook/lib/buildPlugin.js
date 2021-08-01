@@ -1,6 +1,7 @@
 import path from 'path';
 import { readFile } from 'fs/promises';
 import esbuild from 'esbuild';
+import { resolveToImportMetaUrl } from '@chialab/node-resolve';
 import { createManagerHtml, createManagerScript, createManagerStyle } from './createManager.js';
 import { findStories } from './findStories.js';
 import { createPreviewHtml, createPreviewScript, createPreviewStyle } from './createPreview.js';
@@ -10,7 +11,7 @@ import { transformMdxToCsf } from './transformMdxToCsf.js';
  * @param {string} type
  */
 function storybookModulesPlugin(type) {
-    const storybookDir = path.resolve(import.meta.url.replace('file://', ''), '../../storybook');
+    const storybookDir = resolveToImportMetaUrl(import.meta.url, '../storybook');
 
     /**
      * @type {import('esbuild').Plugin}

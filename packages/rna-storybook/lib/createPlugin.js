@@ -9,6 +9,7 @@ import { servePlugin } from './servePlugin.js';
  * @typedef {Object} StorybookConfig
  * @property {string} type
  * @property {string[]} stories
+ * @property {boolean} [essentials]
  * @property {string[]} [addons]
  * @property {string[]} [managerEntries]
  * @property {string[]} [previewEntries]

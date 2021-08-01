@@ -18,12 +18,13 @@ export default function({ plugins = [] } = {}) {
      * @type {import('esbuild').Plugin}
      */
     const plugin = {
-        name: 'rna-storybook-wc-manifest',
+        name: 'rna-storybook-cem',
         setup(build) {
             const options = build.initialOptions;
+            const rootDir = options.sourceRoot || process.cwd();
 
             build.onLoad({ filter: createFilter(build), namespace: 'file' }, async (args) => {
-                if (args.path.includes('/node_modules/')) {
+                if (args.path.includes('/node_modules/') || !args.path.startsWith(rootDir)) {
                     return;
                 }
 
@@ -37,43 +38,48 @@ export default function({ plugins = [] } = {}) {
                 ];
 
                 const customElementsManifest = create({ modules, plugins });
-                if (!customElementsManifest.modules || customElementsManifest.modules.length === 0) {
+                if (!customElementsManifest.modules) {
                     return;
                 }
 
-                customElementsManifest.modules.forEach((mod) => {
-                    if (!mod.declarations) {
-                        return;
-                    }
+                const declarations = customElementsManifest.modules
+                    .filter((mod) => mod.declarations)
+                    .reduce((acc, mod) => {
+                        acc.push(...mod.declarations);
+                        return acc;
+                    }, []);
 
-                    mod.declarations
-                        .filter(
-                            /** @param {*} decl */
-                            (decl) => decl.customElement && decl.attributes && decl.members
-                        )
-                        .forEach(
-                            /** @param {*} decl */
-                            (decl) => {
-                                decl.attributes.forEach(
-                                    /** @param {*} attr */
-                                    (attr) => {
-                                        const member = decl.members.find(
-                                            /** @param {*} m */
-                                            (m) => m.name === attr.fieldName
-                                        );
-                                        if (!member) {
-                                            return member;
-                                        }
+                if (declarations.length === 0) {
+                    return;
+                }
 
-                                        attr.name += ' ';
-                                        attr.description = `🔗 **${member.name}**`;
-                                        attr.type = undefined;
-                                        attr.default = undefined;
+                declarations
+                    .filter(
+                        /** @param {*} decl */
+                        (decl) => decl.customElement && decl.attributes && decl.members
+                    )
+                    .forEach(
+                        /** @param {*} decl */
+                        (decl) => {
+                            decl.attributes.forEach(
+                                /** @param {*} attr */
+                                (attr) => {
+                                    const member = decl.members.find(
+                                        /** @param {*} m */
+                                        (m) => m.name === attr.fieldName
+                                    );
+                                    if (!member) {
+                                        return member;
                                     }
-                                );
-                            }
-                        );
-                });
+
+                                    attr.name += ' ';
+                                    attr.description = `🔗 **${member.name}**`;
+                                    attr.type = undefined;
+                                    attr.default = undefined;
+                                }
+                            );
+                        }
+                    );
 
                 await pipe(entry, {
                     source: path.basename(args.path),

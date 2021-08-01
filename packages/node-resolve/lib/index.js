@@ -1,3 +1,4 @@
+import path from 'path';
 import nodeResolve from 'enhanced-resolve';
 import isCore from 'is-core-module';
 
@@ -69,3 +70,11 @@ export const browserResolve = createResolver({
     mainFields: ['module', 'esnext', 'jsnext', 'jsnext:main', 'browser', 'main'],
     aliasFields: ['browser'],
 });
+
+/**
+ * @param {string} metaUrl
+ * @param {string} relativePath
+ */
+export function resolveToImportMetaUrl(metaUrl, relativePath) {
+    return path.resolve(path.dirname(metaUrl.replace('file://', '')), relativePath);
+}
