@@ -1,7 +1,8 @@
 import path from 'path';
 import { getRequestFilePath } from '@web/dev-server-core';
-import { CSS_EXTENSIONS } from '@chialab/node-resolve';
+import { CSS_EXTENSIONS, JSON_EXTENSIONS } from '@chialab/node-resolve';
 import { resolveImport } from '@chialab/wds-plugin-rna';
+import { loadAddons } from './loadAddon.js';
 import { findStories } from './findStories.js';
 import { createManagerHtml, createManagerScript, createManagerStyle } from './createManager.js';
 import { createPreviewHtml, createPreviewScript, createPreviewStyle } from './createPreview.js';
@@ -14,35 +15,18 @@ const regexpReplaceWebsocket = /<!-- injected by web-dev-server -->(.|\s)*<\/scr
  */
 
 /**
- * @typedef {Object} StorybookServeOptions
- * @property {string} type
- * @property {string[]} stories
- * @property {string[]} [addons]
- * @property {string[]} [managerScripts]
- * @property {string[]} [previewScripts]
- * @property {string} [managerHead]
- * @property {string} [previewHead]
- * @property {string} [previewBody]
+ * @param {import('./createPlugin').StorybookConfig} options
  */
-
-/**
- * @param {StorybookServeOptions} options
- */
-export function servePlugin({ type, stories: storiesPattern, addons = [], managerScripts = [], previewScripts = [], managerHead, previewHead, previewBody }) {
+export function servePlugin({ type, stories: storiesPattern, addons = [], managerEntries = [], previewEntries = [], managerHead, previewHead, previewBody }) {
     /**
      * @type {import('@web/dev-server-core').DevServerCoreConfig}
      */
     let serverConfig;
 
     /**
-     * @type {string[]}
+     * @type {Promise<[string[], string[]]>}
      */
-    const managerModules = ['/manager.js'];
-
-    /**
-     * @type {string[]}
-     */
-    const previewModules = ['/preview.js'];
+    let addonsLoader;
 
     /**
      * @type {Plugin}
@@ -52,6 +36,7 @@ export function servePlugin({ type, stories: storiesPattern, addons = [], manage
 
         serverStart(args) {
             serverConfig = args.config;
+            addonsLoader = loadAddons(addons, serverConfig.rootDir);
         },
 
         resolveMimeType(context) {
@@ -65,8 +50,37 @@ export function servePlugin({ type, stories: storiesPattern, addons = [], manage
         },
 
         transformImport({ source, context }) {
-            if (context.response.is('js') && CSS_EXTENSIONS.includes(path.extname(source))) {
+            if (context.response.is('js') &&
+                CSS_EXTENSIONS.includes(path.extname(source))) {
+                if (source.includes('?')) {
+                    return `${source}&module=style`;
+                }
                 return `${source}?module=style`;
+            }
+
+            if (JSON_EXTENSIONS.includes(path.extname(source))) {
+                return;
+            }
+
+            if (source.includes('/@storybook/') ||
+                (context.path.includes('/@storybook/') && source[0] === '.')) {
+                source = source.replace('/dist/esm/', '/dist/cjs/');
+            }
+
+            if (context.path === '/manager.js' || context.URL.searchParams.has('manager')) {
+                if (source.includes('?')) {
+                    return `${source}&manager=true`;
+                }
+                return `${source}?manager=true`;
+            }
+
+            if (context.path === '/preview.js' ||
+                context.URL.searchParams.has('preview') ||
+                context.URL.searchParams.has('story')) {
+                if (source.includes('?')) {
+                    return `${source}&preview=true`;
+                }
+                return `${source}?preview=true`;
             }
         },
 
@@ -79,12 +93,11 @@ export function servePlugin({ type, stories: storiesPattern, addons = [], manage
                 return await resolveImport(`../storybook/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
             }
 
-            const rootDir = serverConfig.rootDir;
-            const filePath = decodeURIComponent(getRequestFilePath(context.url, rootDir));
             const bundledModules = [
                 `@storybook/${type}`,
                 '@storybook/api',
                 '@storybook/addons',
+                '@storybook/client-api',
                 '@storybook/client-logger',
                 '@storybook/components',
                 '@storybook/core-events',
@@ -100,21 +113,12 @@ export function servePlugin({ type, stories: storiesPattern, addons = [], manage
             }
 
             if (bundledModules.includes(source)) {
-                if (managerModules.includes(filePath)) {
+                if (context.URL.searchParams.has('manager')) {
                     return resolveImport('../storybook/manager/index.js', import.meta.url, serverConfig.rootDir, { code, line, column });
                 }
-
-                if (previewModules.includes(filePath)) {
+                if (context.URL.searchParams.has('preview')) {
                     return resolveImport(`../storybook/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
                 }
-            }
-
-            const url = await resolveImport(source, filePath, rootDir, { code, line, column });
-            const fullSpec = path.resolve(path.dirname(filePath), url);
-            if (context.path === '/manager.js' || managerModules.includes(filePath)) {
-                managerModules.push(fullSpec);
-            } else if (context.path === '/preview.js' || previewModules.includes(filePath)) {
-                previewModules.push(fullSpec);
             }
         },
 
@@ -173,9 +177,13 @@ export function servePlugin({ type, stories: storiesPattern, addons = [], manage
             }
 
             if (context.path.startsWith('/manager.js')) {
+                const [manager] = await addonsLoader;
                 return createManagerScript({
                     addons,
-                    managerScripts,
+                    managerEntries: [
+                        ...manager,
+                        ...managerEntries,
+                    ],
                 });
             }
 
@@ -184,8 +192,8 @@ export function servePlugin({ type, stories: storiesPattern, addons = [], manage
             }
 
             if (context.path.startsWith('/preview.js')) {
+                const [, preview] = await addonsLoader;
                 const stories = await findStories(serverConfig.rootDir, storiesPattern);
-                previewModules.push(...stories);
                 return createPreviewScript({
                     type,
                     stories: stories
@@ -194,7 +202,10 @@ export function servePlugin({ type, stories: storiesPattern, addons = [], manage
                             storyFilePath
                         ).split(path.sep).join('/')}`)
                         .map(i => `${i}?story=true`),
-                    previewScripts,
+                    previewEntries: [
+                        ...preview,
+                        ...previewEntries,
+                    ],
                 });
             }
 

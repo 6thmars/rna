@@ -7,17 +7,6 @@ import { createPreviewHtml, createPreviewScript, createPreviewStyle } from './cr
 import { transformMdxToCsf } from './transformMdxToCsf.js';
 
 /**
- * @typedef {Object} StorybookBuildOptions
- * @property {string} type
- * @property {string[]} stories
- * @property {string[]} [addons]
- * @property {string[]} [previewScripts]
- * @property {string} [managerHead]
- * @property {string} [previewHead]
- * @property {string} [previewBody]
- */
-
-/**
  * @param {string} type
  */
 function storybookModulesPlugin(type) {
@@ -62,7 +51,7 @@ function storybookModulesPlugin(type) {
 }
 
 /**
- * @param {StorybookBuildOptions} options Storybook options.
+ * @param {import('./createPlugin').StorybookConfig} options Storybook options.
  * @return An esbuild plugin.
  */
 export function buildPlugin({ type, stories: storiesPattern, addons, managerHead, previewHead, previewBody }) {

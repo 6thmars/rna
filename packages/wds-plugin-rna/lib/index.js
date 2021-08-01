@@ -212,6 +212,9 @@ document.head.appendChild(link);
      */
     async transformImport({ source }) {
         if (source.endsWith('.json')) {
+            if (source.includes('?')) {
+                return `${source}&module=json`;
+            }
             return `${source}?module=json`;
         }
     }

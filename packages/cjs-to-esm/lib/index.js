@@ -243,7 +243,7 @@ var exports = module.exports;
             const isEsModule = exports.includes('__esModule');
             const hasDefault = exports.includes('default');
             if (named.length) {
-                const conditions = ['typeof module.exports === \'object\''];
+                const conditions = ['Object.isExtensible(module.exports)'];
                 if (named.length === 1 && !hasDefault && !isEsModule) {
                     // add an extra conditions for some edge cases not handled by the cjs lexer
                     // such as an object exports that has a function as first member.

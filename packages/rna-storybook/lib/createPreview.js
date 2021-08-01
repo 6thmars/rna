@@ -10,18 +10,18 @@
  * @typedef {Object} PreviewScriptOptions
  * @property {string} type
  * @property {string[]} stories
- * @property {string[]} [previewScripts]
+ * @property {string[]} [previewEntries]
  */
 
 /**
  * @param {PreviewScriptOptions} options
  */
-export async function createPreviewScript({ type, stories = [], previewScripts = [] }) {
-    return `import { configure, addDecorator, addParameters, registerPreviewEntry } from '@storybook/${type}';
-${previewScripts.map((previewScript, index) => `import * as preview${index} from '${previewScript}';`).join('\n')}
+export async function createPreviewScript({ type, stories = [], previewEntries = [] }) {
+    return `import { configure, registerPreviewEntry } from '@storybook/${type}';
+${previewEntries.map((previewScript, index) => `import * as preview${index} from '${previewScript}';`).join('\n')}
 ${stories.map((s, i) => `import * as stories${i} from '${s}';`).join('\n')}
 
-${previewScripts.map((previewScript, index) => `registerPreviewEntry(preview${index});`).join('\n')}
+${previewEntries.map((previewScript, index) => `registerPreviewEntry(preview${index});`).join('\n')}
 
 setTimeout(() => {
     configure(() => [${stories.map((s, i) => `stories${i}`)}], {}, false);
@@ -45,6 +45,42 @@ export function createPreviewStyle() {
     display: none;
 }
 
+.sb-show-main.sb-main-centered {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.sb-show-main.sb-main-centered #root {
+    box-sizing: border-box;
+    margin: auto;
+    padding: 1rem;
+    max-height: 100%; /* Hack for centering correctly in IE11 */
+}
+
+/* Vertical centering fix for IE11 */
+@media screen and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+    .sb-show-main.sb-main-centered:after {
+        content: '';
+        min-height: inherit;
+        font-size: 0;
+    }
+}
+
+.sb-show-main.sb-main-fullscreen {
+    margin: 0;
+    padding: 0;
+    display: block;
+}
+
+.sb-show-main.sb-main-padded {
+    margin: 0;
+    padding: 1rem;
+    display: block;
+    box-sizing: border-box;
+}
+
 .sb-wrapper {
     position: fixed;
     top: 0;
@@ -52,7 +88,8 @@ export function createPreviewStyle() {
     left: 0;
     right: 0;
     padding: 20px;
-    font-family: 'Nunito Sans', -apple-system, '.SFNSText-Regular', 'San Francisco', BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;
+    font-family: "Nunito Sans", -apple-system, ".SFNSText-Regular", "San Francisco", BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
     overflow: auto;
 }
 
@@ -74,7 +111,7 @@ export function createPreviewStyle() {
     margin: auto;
     padding: 30px;
     border-radius: 10px;
-    background: rgba(0, 0, 0, 0.03);
+    background: rgba(0,0,0,0.03);
 }
 
 .sb-nopreview_heading {
@@ -92,7 +129,7 @@ export function createPreviewStyle() {
     padding: 10px;
     background: #000;
     color: #eee;
-    font-family: 'Operator Mono', 'Fira Code Retina', 'Fira Code', 'FiraCode-Retina', 'Andale Mono', 'Lucida Console', Consolas, Monaco, monospace;
+    font-family: "Operator Mono", "Fira Code Retina", "Fira Code", "FiraCode-Retina", "Andale Mono", "Lucida Console", Consolas, Monaco, monospace;
 }
 
 .sb-errordisplay pre {

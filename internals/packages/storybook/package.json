@@ -4,6 +4,7 @@
   "version": "6.3.6",
   "type": "module",
   "browser": {
+    "core-js": false,
     "@storybook/core/client": "@storybook/core"
   },
   "devDependencies": {

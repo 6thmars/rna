@@ -8,8 +8,8 @@ import { resolve } from '@chialab/node-resolve';
 export default function(modules = {}) {
     const aliases = Object.keys(modules).filter((alias) => modules[alias]);
     const empty = Object.keys(modules).filter((alias) => !modules[alias]);
-    const aliasFilter = new RegExp(`^${aliases.map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}$`);
-    const emptyFilter = new RegExp(`^${empty.map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}$`);
+    const aliasFilter = new RegExp(`(^|\\/)${aliases.map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}(\\/|$)`);
+    const emptyFilter = new RegExp(`(^|\\/)${empty.map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}(\\/|$)`);
 
     /**
      * @type {import('esbuild').Plugin}

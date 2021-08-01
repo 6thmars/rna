@@ -8,16 +8,16 @@
 /**
  * @typedef {Object} ManagerScriptOptions
  * @property {string[]} [addons]
- * @property {string[]} [managerScripts]
+ * @property {string[]} [managerEntries]
  */
 
 /**
  * @param {ManagerScriptOptions} [options]
  */
-export function createManagerScript({ addons = [], managerScripts = [] } = {}) {
+export function createManagerScript({ addons = [], managerEntries = [] } = {}) {
     return `import '@storybook/manager';
 ${addons.map((a) => `import '${a}';`).join('\n')}
-${managerScripts.map((a) => `import '${a}';`).join('\n')}
+${managerEntries.map((a) => `import '${a}';`).join('\n')}
 `;
 }
 
