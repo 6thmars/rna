@@ -31,7 +31,7 @@ function isOutsideRootDir(path) {
     return path.startsWith('/__wds-outside-root__/');
 }
 
-export { resolveImport, resolveRelativeImport };
+export * from './resolveImport.js';
 
 /**
  * @implements {Plugin}

@@ -1,6 +1,6 @@
 import path from 'path';
 import { PluginSyntaxError, PluginError } from '@web/dev-server-core';
-import { browserResolve } from '@chialab/node-resolve';
+import { normalizeImportMetaUrl, browserResolve } from '@chialab/node-resolve';
 
 /**
  * @param {string} filePath
@@ -45,7 +45,28 @@ export function resolveRelativeImport(fullSpec, importer, serveDir, { code, line
  * @param {{ code?: string, line?: number, column?: number }} [info]
  */
 export async function resolveImport(spec, importer, serveDir, { code, line, column } = {}) {
+    importer = normalizeImportMetaUrl(importer);
+
     const fullSpec = await browserResolve(spec, path.dirname(importer));
+    if (!fullSpec) {
+        return '/__rna-empty__.js';
+    }
+    if (fullSpec.startsWith(serveDir)) {
+        return `./${path.relative(path.dirname(importer), fullSpec)}`;
+    }
+
+    return resolveRelativeImport(fullSpec, importer, serveDir, { code, line, column });
+}
+
+/**
+ * @param {string} spec
+ * @param {string} importer
+ * @param {string} serveDir
+ * @param {{ code?: string, line?: number, column?: number }} [info]
+ */
+export async function resolveImportFromServeDir(spec, importer, serveDir, { code, line, column } = {}) {
+    importer = normalizeImportMetaUrl(importer);
+    const fullSpec = await browserResolve(spec, serveDir);
     if (!fullSpec) {
         return '/__rna-empty__.js';
     }

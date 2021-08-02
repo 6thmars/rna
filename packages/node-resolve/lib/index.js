@@ -76,5 +76,12 @@ export const browserResolve = createResolver({
  * @param {string} relativePath
  */
 export function resolveToImportMetaUrl(metaUrl, relativePath) {
-    return path.resolve(path.dirname(metaUrl.replace('file://', '')), relativePath);
+    return path.resolve(path.dirname(normalizeImportMetaUrl(metaUrl)), relativePath);
+}
+
+/**
+ * @param {string} metaUrl
+ */
+export function normalizeImportMetaUrl(metaUrl) {
+    return metaUrl.replace('file://', '');
 }

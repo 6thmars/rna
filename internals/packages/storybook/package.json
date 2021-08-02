@@ -9,6 +9,7 @@
     "@storybook/core/client": "@storybook/core"
   },
   "devDependencies": {
+    "@chialab/dna": "^3.4.6",
     "@mdx-js/react": "^1.6.22",
     "@storybook/addon-a11y": "next",
     "@storybook/addon-docs": "next",
@@ -16,6 +17,7 @@
     "@storybook/core-client": "next",
     "@storybook/web-components": "next",
     "lit-html": "^1.4.1",
+    "prettier": "^2.3.2",
     "react": "^16.0.0",
     "react-dom": "^16.0.0"
   }

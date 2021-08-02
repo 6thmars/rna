@@ -29,6 +29,16 @@ const config = {
         {
             input: './src/frameworks/web-components/index.js',
             output: './dist/frameworks/web-components/index.js',
+            external: [
+                'lit-html',
+            ],
+        },
+        {
+            input: './src/frameworks/dna/index.js',
+            output: './dist/frameworks/dna/index.js',
+            external: [
+                '@chialab/dna',
+            ],
         },
         {
             input: './src/addons/essentials/register.js',
@@ -44,7 +54,7 @@ const config = {
     format: 'esm',
     platform: 'browser',
     bundle: true,
-    // minify: true,
+    minify: true,
     sourcemap: false,
     clean: true,
 };

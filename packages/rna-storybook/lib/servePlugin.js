@@ -1,7 +1,8 @@
 import path from 'path';
+import { readFile } from 'fs/promises';
 import { getRequestFilePath } from '@web/dev-server-core';
 import { CSS_EXTENSIONS, JSON_EXTENSIONS, resolveToImportMetaUrl } from '@chialab/node-resolve';
-import { resolveImport } from '@chialab/wds-plugin-rna';
+import { resolveImportFromServeDir } from '@chialab/wds-plugin-rna';
 import { loadAddons } from './loadAddons.js';
 import { findStories } from './findStories.js';
 import { createManagerHtml, createManagerScript, createManagerStyle } from './createManager.js';
@@ -63,7 +64,7 @@ export function servePlugin({ type, stories: storiesPattern, essentials = false,
             }
 
             if (source.includes('/@storybook/') ||
-                (context.path.includes('/@storybook/') && source[0] === '.')) {
+                (context.path.includes('/@storybook/') && source[0] === './')) {
                 source = source.replace('/dist/esm/', '/dist/cjs/');
             }
 
@@ -85,12 +86,10 @@ export function servePlugin({ type, stories: storiesPattern, essentials = false,
         },
 
         async resolveImport({ source, context, code, line, column }) {
-            if (source === '@storybook/manager') {
-                return await resolveImport('../storybook/manager/index.js', import.meta.url, serverConfig.rootDir, { code, line, column });
-            }
-
-            if (source === `@storybook/${type}`) {
-                return await resolveImport(`../storybook/frameworks/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
+            if (source === '@storybook/manager' ||
+                source === `@storybook/${type}` ||
+                source === '@storybook/essentials') {
+                return `/${source}.js`;
             }
 
             const bundledModules = [
@@ -109,15 +108,25 @@ export function servePlugin({ type, stories: storiesPattern, essentials = false,
             ];
 
             if (type === 'web-components') {
-                bundledModules.push('lit-html');
+                if (source === 'lit-html') {
+                    const filePath = getRequestFilePath(context.url, serverConfig.rootDir);
+                    return await resolveImportFromServeDir(source, filePath, serverConfig.rootDir, { code, line, column });
+                }
+            }
+
+            if (type === 'dna') {
+                if (source === '@chialab/dna') {
+                    const filePath = getRequestFilePath(context.url, serverConfig.rootDir);
+                    return await resolveImportFromServeDir(source, filePath, serverConfig.rootDir, { code, line, column });
+                }
             }
 
             if (bundledModules.includes(source)) {
                 if (context.URL.searchParams.has('manager')) {
-                    return resolveImport('../storybook/manager/index.js', import.meta.url, serverConfig.rootDir, { code, line, column });
+                    return '/@storybook/manager.js';
                 }
                 if (context.URL.searchParams.has('preview')) {
-                    return resolveImport(`../storybook/frameworks/${type}/index.js`, import.meta.url, serverConfig.rootDir, { code, line, column });
+                    return `/@storybook/${type}.js`;
                 }
             }
         },
@@ -176,13 +185,29 @@ export function servePlugin({ type, stories: storiesPattern, essentials = false,
                 };
             }
 
+            if (context.path === '/@storybook/manager.js') {
+                const url = resolveToImportMetaUrl(import.meta.url, '../storybook/manager/index.js');
+                return await readFile(url, 'utf-8');
+            }
+
+            if (context.path === `/@storybook/${type}.js`) {
+                const url = resolveToImportMetaUrl(import.meta.url, `../storybook/frameworks/${type}/index.js`);
+                return await readFile(url, 'utf-8');
+            }
+
+            if (context.path === '/@storybook/essentials.js') {
+                const url = resolveToImportMetaUrl(
+                    import.meta.url,
+                    context.URL.searchParams.has('manager') ? '../storybook/addons/essentials/register.js' : '../storybook/addons/essentials/config.js'
+                );
+                return await readFile(url, 'utf-8');
+            }
+
             if (context.path.startsWith('/manager.js')) {
                 const [manager] = await addonsLoader;
                 return createManagerScript({
                     addons: [
-                        ...(essentials ? [
-                            resolveToImportMetaUrl(import.meta.url, '../storybook/addons/essentials/register.js'),
-                        ] : []),
+                        ...(essentials ? ['@storybook/essentials'] : []),
                         ...addons,
                     ],
                     managerEntries: [
@@ -208,9 +233,7 @@ export function servePlugin({ type, stories: storiesPattern, essentials = false,
                         ).split(path.sep).join('/')}`)
                         .map(i => `${i}?story=true`),
                     previewEntries: [
-                        ...(essentials ? [
-                            resolveToImportMetaUrl(import.meta.url, '../storybook/addons/essentials/config.js'),
-                        ] : []),
+                        ...(essentials ? ['@storybook/essentials'] : []),
                         ...preview,
                         ...previewEntries,
                     ],

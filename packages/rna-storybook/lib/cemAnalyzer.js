@@ -6,6 +6,7 @@ import { create } from '@custom-elements-manifest/analyzer/src/create.js';
 
 /**
  * @typedef {Object} PluginOptions
+ * @property {string} [framework]
  * @property {*[]} [plugins]
  */
 
@@ -13,7 +14,7 @@ import { create } from '@custom-elements-manifest/analyzer/src/create.js';
  * @param {PluginOptions} [options]
  * @return An esbuild plugin.
  */
-export default function({ plugins = [] } = {}) {
+export default function({ framework = '@storybook/web-components', plugins = [] } = {}) {
     /**
      * @type {import('esbuild').Plugin}
      */
@@ -24,7 +25,9 @@ export default function({ plugins = [] } = {}) {
             const rootDir = options.sourceRoot || process.cwd();
 
             build.onLoad({ filter: createFilter(build), namespace: 'file' }, async (args) => {
-                if (args.path.includes('/node_modules/') || !args.path.startsWith(rootDir)) {
+                if (args.path.includes('/node_modules/') ||
+                    args.path.includes('/@storybook/') ||
+                    !args.path.startsWith(rootDir)) {
                     return;
                 }
 
@@ -85,7 +88,7 @@ export default function({ plugins = [] } = {}) {
                     source: path.basename(args.path),
                     sourcesContent: options.sourcesContent,
                 }, async ({ magicCode }) => {
-                    magicCode.prepend('import * as __STORYBOOK_WEB_COMPONENTS__ from \'@storybook/web-components\';\n');
+                    magicCode.prepend(`import * as __STORYBOOK_WEB_COMPONENTS__ from '${framework}';\n`);
                     magicCode.append(`
 ;(function() {
     const { getCustomElements, setCustomElementsManifest } = __STORYBOOK_WEB_COMPONENTS__;
